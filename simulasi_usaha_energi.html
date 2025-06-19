@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulasi Usaha dan Energi</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: linear-gradient(to top, #2c3e50, #34495e);
+      color: white;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      display: block;
+      margin: 20px auto;
+      background: url('https://cdn.pixabay.com/photo/2017/02/07/17/32/background-2048140_1280.png');
+      background-size: cover;
+      background-blend-mode: multiply;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    label {
+      display: block;
+    }
+    .buttons {
+      margin-top: 20px;
+    }
+    .buttons button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .input-field {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Simulasi Usaha dan Energi</h2>
+  <div class="controls">
+    <div class="input-field">
+      <label for="gayaInput">Gaya (Newton):</label>
+      <input type="number" id="gayaInput" value="10">
+    </div>
+    <div class="input-field">
+      <label for="massaInput">Berat (kg):</label>
+      <input type="number" id="massaInput" value="10">
+    </div>
+    <div class="input-field">
+      <label for="jarakInput">Jarak (m):</label>
+      <input type="number" id="jarakInput" value="20">
+    </div>
+  </div>
+
+  <canvas id="simCanvas" width="800" height="300"></canvas>
+
+  <h3>Nilai Usaha: <span id="usahaOutput">0</span> Joule</h3>
+  <h3>Jarak Tempuh Saat Ini: <span id="jarakOutput">0</span> meter</h3>
+  <div class="buttons">
+    <button onclick="startSimulasi()">Mulai</button>
+    <button onclick="pauseSimulasi()">Jeda</button>
+    <button onclick="stopSimulasi()">Hentikan</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const orangImg = new Image();
+    const boxImg = new Image();
+    let orangLoaded = false;
+    let boxLoaded = false;
+
+    orangImg.src = 'https://cdn-icons-png.flaticon.com/512/706/706830.png';
+    boxImg.src = 'https://cdn-icons-png.flaticon.com/512/1514/1514801.png';
+
+    orangImg.onload = () => {
+      orangLoaded = true;
+      drawScene();
+    };
+
+    boxImg.onload = () => {
+      boxLoaded = true;
+      drawScene();
+    };
+
+    let gaya = 10;
+    let massa = 10;
+    let jarak = 20;
+    let usaha = 0;
+    let posisi = 50;
+    let isRunning = false;
+    let isPaused = false;
+    let animationFrame;
+    let jejak = [];
+
+    const gayaInput = document.getElementById('gayaInput');
+    const massaInput = document.getElementById('massaInput');
+    const jarakInput = document.getElementById('jarakInput');
+    const usahaOutput = document.getElementById('usahaOutput');
+    const jarakOutput = document.getElementById('jarakOutput');
+
+    gayaInput.oninput = () => {
+      gaya = parseFloat(gayaInput.value);
+      resetSimulasi();
+    };
+    massaInput.oninput = () => {
+      massa = parseFloat(massaInput.value);
+      resetSimulasi();
+    };
+    jarakInput.oninput = () => {
+      jarak = parseFloat(jarakInput.value);
+      resetSimulasi();
+    };
+
+    function resetSimulasi() {
+      posisi = 50;
+      usaha = 0;
+      jejak = [];
+      drawScene();
+      usahaOutput.textContent = Math.round(usaha);
+      jarakOutput.textContent = '0';
+    }
+
+    function drawScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Gambar medan (garis putih horizontal)
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 230);
+      ctx.lineTo(canvas.width, 230);
+      ctx.stroke();
+
+      // Gambar jejak (garis hitam)
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (jejak.length > 0) {
+        ctx.moveTo(jejak[0], 230);
+        for (let i = 1; i < jejak.length; i++) {
+          ctx.lineTo(jejak[i], 230);
+        }
+        ctx.stroke();
+      }
+
+      if (orangLoaded) ctx.drawImage(orangImg, posisi - 40, 140, 50, 50);
+      if (boxLoaded) ctx.drawImage(boxImg, posisi, 140, 60, 60);
+    }
+
+    function updateSimulasi() {
+      if (!isRunning || isPaused) return;
+
+      const gayaTotal = gaya;
+      const percepatan = gayaTotal / massa;
+      const jarakTempuh = percepatan * 2;
+
+      if (posisi < 50 + jarak) {
+        posisi += jarakTempuh;
+        usaha += gayaTotal * jarakTempuh;
+        jejak.push(posisi);
+        jarakOutput.textContent = Math.round(posisi - 50);
+      }
+
+      usahaOutput.textContent = Math.round(usaha);
+      drawScene();
+      animationFrame = requestAnimationFrame(updateSimulasi);
+    }
+
+    function startSimulasi() {
+      gaya = parseFloat(gayaInput.value);
+      massa = parseFloat(massaInput.value);
+      jarak = parseFloat(jarakInput.value);
+      if (!isRunning) {
+        isRunning = true;
+        isPaused = false;
+        updateSimulasi();
+      } else if (isPaused) {
+        isPaused = false;
+        updateSimulasi();
+      }
+    }
+
+    function pauseSimulasi() {
+      isPaused = true;
+      cancelAnimationFrame(animationFrame);
+    }
+
+    function stopSimulasi() {
+      isRunning = false;
+      isPaused = false;
+      cancelAnimationFrame(animationFrame);
+      resetSimulasi();
+    }
+  </script>
+</body>
+</html>
